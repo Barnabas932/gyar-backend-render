@@ -1,3 +1,4 @@
+
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -16,12 +17,13 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
+// Ügyfél hozzáadás
 app.post('/customer', async (req, res) => {
-  const { name, address } = req.body;
+  const { name, address, email } = req.body;
   try {
     const result = await pool.query(
-      'INSERT INTO customers (name, address) VALUES ($1, $2) RETURNING *',
-      [name, address]
+      'INSERT INTO ugyfel (nev, cim, email) VALUES ($1, $2, $3) RETURNING *',
+      [name, address, email]
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -30,13 +32,48 @@ app.post('/customer', async (req, res) => {
   }
 });
 
-app.get('/customers', async (req, res) => {
+// Termék hozzáadás
+app.post('/product', async (req, res) => {
+  const { name, cost, price } = req.body;
   try {
-    const result = await pool.query('SELECT * FROM customers');
-    res.json(result.rows);
+    const result = await pool.query(
+      'INSERT INTO termek (nev, alapanyag_koltseg, eladasi_ar) VALUES ($1, $2, $3) RETURNING *',
+      [name, cost, price]
+    );
+    res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
-    res.status(500).send('Error fetching customers');
+    res.status(500).send('Error saving product');
+  }
+});
+
+// Megrendelés hozzáadás
+app.post('/order', async (req, res) => {
+  const { customerId, date, status } = req.body;
+  try {
+    const result = await pool.query(
+      'INSERT INTO megrendeles (ugyfel_id, datum, statusz) VALUES ($1, $2, $3) RETURNING *',
+      [customerId, date, status]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Error saving order');
+  }
+});
+
+// Szállítás hozzáadás
+app.post('/shipping', async (req, res) => {
+  const { orderId, company, date, state } = req.body;
+  try {
+    const result = await pool.query(
+      'INSERT INTO szallitas (megrendeles_id, szallito_ceg, szallitas_datum, allapot) VALUES ($1, $2, $3, $4) RETURNING *',
+      [orderId, company, date, state]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Error saving shipping');
   }
 });
 
